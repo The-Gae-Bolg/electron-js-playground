@@ -151,6 +151,8 @@
         </div>
         <div class="resizer" id="resizer"></div>
         <div class="output-container" id="output-container">
+            <div class="output-title">Variables</div>
+            <div class="output" id="variables-output" style="margin-bottom:10px; min-height:40px; max-height:120px; overflow:auto;"></div>
             <div class="output-title">Consola</div>
             <div class="output" id="output">
                 <pre id="output-content">Ejecuta el código para ver los resultados aquí...</pre>
@@ -207,32 +209,68 @@
         function executeCode() {
             const code = editor.getValue();
             outputContent.innerHTML = '';
+            const variablesOutput = document.getElementById('variables-output');
+            let varsHtml = '';
             try {
                 let logs = [];
                 const originalLog = console.log;
                 const originalWarn = console.warn;
                 const originalError = console.error;
                 const originalInfo = console.info;
+                const originalTable = console.table;
+                // Utilidad para obtener la línea de ejecución
+                function getLine() {
+                    const err = new Error();
+                    const stack = err.stack.split('\n');
+                    for (let i = 2; i < stack.length; i++) {
+                        const match = stack[i].match(/<anonymous>:(\d+):\d+/);
+                        if (match) {
+                            return parseInt(match[1], 10);
+                        }
+                    }
+                    return '?';
+                }
+                // --- Captura variables ---
+                const varNames = [];
+                const varRegex = /^(\s*)(let|const|var)\s+([a-zA-Z_$][\w$]*)/gm;
+                let match;
+                while ((match = varRegex.exec(code)) !== null) {
+                    varNames.push(match[3]);
+                }
+                // Creamos un objeto para exponer las variables
+                let varsProxy = {};
+                // Instrumentamos el código para exponer las variables en varsProxy
+                let instrumentedCode = code + '\n';
+                varNames.forEach(v => {
+                    instrumentedCode += `try { window.__playground_vars__['${v}'] = ${v}; } catch (e) { window.__playground_vars__['${v}'] = '<no evaluado>'; }\n`;
+                });
+                // Inicializamos el objeto global antes de ejecutar
+                window.__playground_vars__ = {};
+                // Redefinimos los métodos de consola
                 console.log = function(...args) {
-                    logs.push('<b style="color:#7ecfff">log:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    const line = getLine();
+                    logs.push(`<b style=\"color:#7ecfff\">[Line ${line}] log:</b> ` + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
                     originalLog.apply(console, args);
                 };
                 console.warn = function(...args) {
-                    logs.push('<b style="color:#ffe066">warn:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    const line = getLine();
+                    logs.push(`<b style=\"color:#ffe066\">[Line ${line}] warn:</b> ` + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
                     originalWarn.apply(console, args);
                 };
                 console.error = function(...args) {
-                    logs.push('<b style="color:#ff6b6b">error:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    const line = getLine();
+                    logs.push(`<b style=\"color:#ff6b6b\">[Line ${line}] error:</b> ` + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
                     originalError.apply(console, args);
                 };
                 console.info = function(...args) {
-                    logs.push('<b style="color:#baffb8">info:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    const line = getLine();
+                    logs.push(`<b style=\"color:#baffb8\">[Line ${line}] info:</b> ` + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
                     originalInfo.apply(console, args);
                 };
                 console.table = function(data, columns) {
-                    let html = '<b style="color:#baffb8">table:</b><br>';
+                    const line = getLine();
+                    let html = `<b style=\"color:#baffb8\">[Line ${line}] table:</b><br>`;
                     if (Array.isArray(data)) {
-                        // Si es un array de objetos
                         if (data.length > 0 && typeof data[0] === 'object') {
                             const keys = columns || Object.keys(data[0]);
                             html += '<table style="border-collapse:collapse;margin-bottom:8px;">';
@@ -254,19 +292,33 @@
                         html += String(data);
                     }
                     logs.push(html);
-                    // No llamamos a originalLog para evitar duplicados en consola real
                 };
-                eval(code);
+                // Ejecutamos el código instrumentado
+                eval(instrumentedCode);
+                // Mostrar variables y valores
+                if (varNames.length > 0) {
+                    varsHtml = varNames.map(v => {
+                        let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<no evaluado>';
+                        if (typeof value === 'object') value = JSON.stringify(value);
+                        return `<span style=\"color:#7ecfff\">${v}</span>: <span style=\"color:#baffb8\">${value}</span>`;
+                    }).join('<br>');
+                } else {
+                    varsHtml = '<span style="color:#888">No se detectaron variables globales.</span>';
+                }
+                variablesOutput.innerHTML = varsHtml;
+                // ---
                 console.log = originalLog;
                 console.warn = originalWarn;
                 console.error = originalError;
                 console.info = originalInfo;
+                console.table = originalTable;
                 if (logs.length > 0) {
                     outputContent.innerHTML = logs.map(l => `<span style=\"color:#e0e0e0\">${l}</span>`).join('<br>');
                 } else {
                     outputContent.innerHTML = '<span style="color:#888">No se detectaron mensajes en consola.</span>';
                 }
             } catch (error) {
+                variablesOutput.innerHTML = '<span style="color:#888">No se detectaron variables globales.</span>';
                 outputContent.innerHTML = `<span class=\"error\">✗ Error en la ejecución</span>\n\n${error}`;
             }
         }
