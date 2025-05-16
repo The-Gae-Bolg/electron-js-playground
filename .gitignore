@@ -1,0 +1,39 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Build
+/dist
+/build
+
+# Electron
+*.asar
+
+# Misc
+.env
+.env.*
+
+# Windows
+*.exe
+*.dll
+*.bat
+*.cmd
+
+# Mac
+*.app

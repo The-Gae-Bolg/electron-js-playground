@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>JS Playground</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Cascadia Code PL', 'Consolas', 'Monaco', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background: #181c20;
+            color: #e0e0e0;
+        }
+        .header {
+            background: #23272e;
+            color: #e0e0e0;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px #0002;
+        }
+        .run-button {
+            background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-family: 'Cascadia Code PL', monospace;
+            font-weight: bold;
+            box-shadow: 0 2px 8px #0003;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .run-button:hover {
+            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+            box-shadow: 0 4px 16px #0005;
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            background: #181c20;
+        }
+        .container.horizontal {
+            flex-direction: row;
+        }
+        .container.vertical {
+            flex-direction: column;
+        }
+        .resizer {
+            background: #23272e;
+            z-index: 1;
+            transition: background 0.2s;
+        }
+        .container.horizontal .resizer {
+            width: 6px;
+            cursor: col-resize;
+            height: 100%;
+        }
+        .container.vertical .resizer {
+            height: 6px;
+            cursor: row-resize;
+            width: 100%;
+        }
+        .resizer:hover {
+            background: #3a7bd5;
+        }
+        .editor-container, .output-container {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+            min-width: 100px;
+            min-height: 100px;
+            background: #181c20;
+        }
+        .editor-container {
+            border-right: 1px solid #23272e;
+        }
+        .editor {
+            flex: 1 1 auto;
+            border: 1px solid #23272e;
+            border-radius: 6px;
+            overflow: hidden;
+            min-height: 50px;
+            background: #23272e;
+        }
+        .output-container {
+            background: #181c20;
+        }
+        .output {
+            flex: 1 1 auto;
+            background: #23272e;
+            border: 1px solid #23272e;
+            border-radius: 6px;
+            padding: 14px 14px 14px 18px;
+            overflow-y: auto;
+            font-family: 'Cascadia Code PL', 'Consolas', 'Monaco', monospace;
+            font-size: 15px;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+            min-height: 50px;
+            box-shadow: 0 2px 8px #0002;
+        }
+        .output-title {
+            margin: 0 0 10px 0;
+            color: #7ecfff;
+            font-size: 15px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            font-family: 'Cascadia Code PL', monospace;
+        }
+        .success {
+            color: #7ecfff;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        #output-content {
+            margin: 0;
+        }
+        #toggle-orientation {
+            color: #7ecfff;
+            transition: color 0.2s;
+        }
+        #toggle-orientation:hover {
+            color: #00d2ff;
+        }
+        /* Monaco Editor theme override */
+        .monaco-editor, .monaco-editor-background, .monaco-editor .inputarea.ime-input {
+            font-family: 'Cascadia Code PL', 'Consolas', 'Monaco', monospace !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>JavaScript Playground</div>
+        <button id="runButton" class="run-button">Ejecutar (Ctrl+Enter)</button>
+    </div>
+    
+    <div class="container" id="container">
+        <div class="editor-container" id="editor-container">
+            <div class="editor" id="editor"></div>
+        </div>
+        <div class="resizer" id="resizer"></div>
+        <div class="output-container" id="output-container">
+            <div class="output-title">Consola</div>
+            <div class="output" id="output">
+                <pre id="output-content">Ejecuta el código para ver los resultados aquí...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+    <script>
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+        let editor;
+        let debounceTimeout;
+        let autoRun = true;
+        const runButton = document.getElementById('runButton');
+        let lastCode = '';
+        let orientation = 'horizontal';
+        const container = document.getElementById('container');
+        const editorContainer = document.getElementById('editor-container');
+        const outputContainer = document.getElementById('output-container');
+        const resizer = document.getElementById('resizer');
+        const outputContent = document.getElementById('output-content');
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: `// Escribe tu código JavaScript aquí\n// Por ejemplo:\nconst saludo = '¡Hola, mundo!';\nconsole.log(saludo);\n\n// El resultado aparecerá en la consola de la derecha`,
+                language: 'javascript',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: true },
+                fontSize: 14,
+                scrollBeyondLastLine: false,
+                renderWhitespace: 'selection',
+                tabSize: 2,
+                lineNumbers: 'on',
+            });
+            editor.onDidChangeModelContent(() => {
+                if (autoRun) {
+                    clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(executeCode, 500);
+                }
+            });
+        });
+        runButton.addEventListener('click', () => {
+            autoRun = !autoRun;
+            runButton.textContent = autoRun ? 'Auto: ON (Ctrl+Enter ejecuta manual)' : 'Auto: OFF (Click para activar)';
+            runButton.style.backgroundColor = autoRun ? '#4CAF50' : '#888';
+            if (autoRun) executeCode();
+        });
+        runButton.textContent = 'Auto: ON (Ctrl+Enter ejecuta manual)';
+        window.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                executeCode();
+            }
+        });
+        function executeCode() {
+            const code = editor.getValue();
+            outputContent.innerHTML = '';
+            try {
+                let logs = [];
+                const originalLog = console.log;
+                const originalWarn = console.warn;
+                const originalError = console.error;
+                const originalInfo = console.info;
+                console.log = function(...args) {
+                    logs.push('<b style="color:#7ecfff">log:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    originalLog.apply(console, args);
+                };
+                console.warn = function(...args) {
+                    logs.push('<b style="color:#ffe066">warn:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    originalWarn.apply(console, args);
+                };
+                console.error = function(...args) {
+                    logs.push('<b style="color:#ff6b6b">error:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    originalError.apply(console, args);
+                };
+                console.info = function(...args) {
+                    logs.push('<b style="color:#baffb8">info:</b> ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+                    originalInfo.apply(console, args);
+                };
+                console.table = function(data, columns) {
+                    let html = '<b style="color:#baffb8">table:</b><br>';
+                    if (Array.isArray(data)) {
+                        // Si es un array de objetos
+                        if (data.length > 0 && typeof data[0] === 'object') {
+                            const keys = columns || Object.keys(data[0]);
+                            html += '<table style="border-collapse:collapse;margin-bottom:8px;">';
+                            html += '<tr>' + keys.map(k => `<th style=\"border:1px solid #444;padding:2px 8px;color:#7ecfff;\">${k}</th>`).join('') + '</tr>';
+                            data.forEach(row => {
+                                html += '<tr>' + keys.map(k => `<td style=\"border:1px solid #444;padding:2px 8px;\">${row[k]}</td>`).join('') + '</tr>';
+                            });
+                            html += '</table>';
+                        } else {
+                            html += JSON.stringify(data);
+                        }
+                    } else if (typeof data === 'object' && data !== null) {
+                        const keys = columns || Object.keys(data);
+                        html += '<table style="border-collapse:collapse;margin-bottom:8px;">';
+                        html += '<tr>' + keys.map(k => `<th style=\"border:1px solid #444;padding:2px 8px;color:#7ecfff;\">${k}</th>`).join('') + '</tr>';
+                        html += '<tr>' + keys.map(k => `<td style=\"border:1px solid #444;padding:2px 8px;\">${data[k]}</td>`).join('') + '</tr>';
+                        html += '</table>';
+                    } else {
+                        html += String(data);
+                    }
+                    logs.push(html);
+                    // No llamamos a originalLog para evitar duplicados en consola real
+                };
+                eval(code);
+                console.log = originalLog;
+                console.warn = originalWarn;
+                console.error = originalError;
+                console.info = originalInfo;
+                if (logs.length > 0) {
+                    outputContent.innerHTML = logs.map(l => `<span style=\"color:#e0e0e0\">${l}</span>`).join('<br>');
+                } else {
+                    outputContent.innerHTML = '<span style="color:#888">No se detectaron mensajes en consola.</span>';
+                }
+            } catch (error) {
+                outputContent.innerHTML = `<span class=\"error\">✗ Error en la ejecución</span>\n\n${error}`;
+            }
+        }
+
+        window.electron.ipcRenderer.on('code-result', (event, result) => {
+            const code = editor.getValue();
+            const outputContent = document.getElementById('output-content');
+            if (result.success) {
+                let output = `<span class=\"success\">✓ Ejecución exitosa</span>\n`;
+                if (result.result !== 'undefined') {
+                    output += `\n<b>Resultado:</b> ${result.result} (${result.type})`;
+                } else {
+                    output += `\nEl código se ejecutó correctamente.`;
+                }
+                outputContent.innerHTML = output;
+            } else {
+                outputContent.innerHTML = `<span class=\"error\">✗ Error en la ejecución</span>\n\n${result.error}`;
+            }
+            outputContent.scrollTop = outputContent.scrollHeight;
+        });
+        
+        function setOrientation(orient) {
+            orientation = orient;
+            if (orient === 'horizontal') {
+                container.classList.remove('vertical');
+                container.classList.add('horizontal');
+                editorContainer.style.width = '50%';
+                editorContainer.style.height = '';
+                outputContainer.style.width = '50%';
+                outputContainer.style.height = '';
+            } else {
+                container.classList.remove('horizontal');
+                container.classList.add('vertical');
+                editorContainer.style.height = '50%';
+                editorContainer.style.width = '';
+                outputContainer.style.height = '50%';
+                outputContainer.style.width = '';
+            }
+        }
+        setOrientation('horizontal');
+
+        toggleOrientation.addEventListener('click', () => {
+            setOrientation(orientation === 'horizontal' ? 'vertical' : 'horizontal');
+        });
+
+        // Resizable logic
+        let isResizing = false;
+        resizer.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            document.body.style.cursor = orientation === 'horizontal' ? 'col-resize' : 'row-resize';
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+            if (orientation === 'horizontal') {
+                const containerRect = container.getBoundingClientRect();
+                let x = e.clientX - containerRect.left;
+                x = Math.max(100, Math.min(x, containerRect.width - 100));
+                const percent = (x / containerRect.width) * 100;
+                editorContainer.style.width = percent + '%';
+                outputContainer.style.width = (100 - percent) + '%';
+            } else {
+                const containerRect = container.getBoundingClientRect();
+                let y = e.clientY - containerRect.top;
+                y = Math.max(100, Math.min(y, containerRect.height - 100));
+                const percent = (y / containerRect.height) * 100;
+                editorContainer.style.height = percent + '%';
+                outputContainer.style.height = (100 - percent) + '%';
+            }
+        });
+        document.addEventListener('mouseup', function() {
+            isResizing = false;
+            document.body.style.cursor = '';
+        });
+    </script>
+</body>
+</html>
