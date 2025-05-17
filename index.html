@@ -234,11 +234,46 @@
             font-weight: normal;
             letter-spacing: 0.1em;
         }
+
+        .menu-button {
+            background: #181c20;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-family: 'Cascadia Code PL', monospace;
+            font-weight: bold;
+            box-shadow: 0 2px 8px #0003;
+            transition: background 0.3s, box-shadow 0.3s;
+            color: #fff;
+        }
+
+        .menu-button:hover {
+            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+            box-shadow: 0 4px 16px #0005;
+        }
     </style>
 </head>
 
 <body>
     <div class="header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="menu-buttons" style="display: flex; gap: 10px;">
+                <button id="new-file" class="menu-button" title="Nuevo archivo (Ctrl+N)">
+                    <i class="fas fa-file"></i> Nuevo
+                </button>
+                <button id="open-file" class="menu-button" title="Abrir archivo (Ctrl+O)">
+                    <i class="fas fa-folder-open"></i> Abrir
+                </button>
+                <button id="save-file" class="menu-button" title="Guardar (Ctrl+S)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+            <span id="file-path" style="margin-left: 10px; font-size: 0.8em; color: #7ecfff; opacity: 0.7; font-family: 'Cascadia Code PL', monospace;">
+                Sin título
+            </span>
+        </div>
         <div style="display: flex; align-items: center; gap: 6px;">
             <span id="jsLabel"
                 style="font-size:0.75em; color:#7ecfff; opacity:0.7; font-family:'Cascadia Code PL', monospace;">JS</span>
@@ -520,20 +555,22 @@
                     varsHtml = '<span style="color:#888">No global variables detected.</span>';
                 }
                 variablesOutput.innerHTML = varsHtml;
-                // ---
-                console.log = originalLog;
-                console.warn = originalWarn;
-                console.error = originalError;
-                console.info = originalInfo;
-                console.table = originalTable;
+                // Mostrar logs de la consola si existen
                 if (logs.length > 0) {
-                    outputContent.innerHTML = logs.map(l => `<span style=\"color:#e0e0e0\">${l}</span>`).join('<br>');
+                    outputContent.innerHTML = logs.map(l => `<span style="color:#e0e0e0">${l}</span>`).join('<br>');
                 } else {
                     outputContent.innerHTML = '<span style="color:#888">No console messages detected.</span>';
                 }
             } catch (error) {
                 variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
-                outputContent.innerHTML = `<span class=\"error\">✗ Execution error</span>\n\n${error}`;
+                outputContent.innerHTML = `<span class="error">✗ Execution error</span>\n\n${error}`;
+            } finally {
+                // Restaurar los métodos originales de la consola
+                console.log = originalLog;
+                console.warn = originalWarn;
+                console.error = originalError;
+                console.info = originalInfo;
+                console.table = originalTable;
             }
         }
 
@@ -553,6 +590,67 @@
                 outputContent.innerHTML = `<span class=\"error\">✗ Execution error</span>\n\n${result.error}`;
             }
         });
+
+        // Manejo de archivos
+        document.getElementById('new-file').addEventListener('click', async () => {
+            const result = await window.electron.fileSystem.newFile();
+            if (result) {
+                editor.setValue(result.content);
+                document.getElementById('file-path').textContent = 'Sin título';
+                currentFilePath = null;
+            }
+        });
+
+        document.getElementById('open-file').addEventListener('click', async () => {
+            const result = await window.electron.fileSystem.openFile();
+            if (result) {
+                editor.setValue(result.content);
+                document.getElementById('file-path').textContent = result.filePath || 'Sin título';
+                currentFilePath = result.filePath;
+                // Actualizar el modo del editor según la extensión del archivo
+                if (result.filePath) {
+                    const ext = result.filePath.split('.').pop().toLowerCase();
+                    if (ext === 'ts' || ext === 'tsx') {
+                        tsSwitch.checked = true;
+                        editorLanguage = 'typescript';
+                        jsLabel.style.opacity = '0.3';
+                        tsLabel.style.opacity = '0.7';
+                    } else {
+                        tsSwitch.checked = false;
+                        editorLanguage = 'javascript';
+                        jsLabel.style.opacity = '0.7';
+                        tsLabel.style.opacity = '0.3';
+                    }
+                    monaco.editor.setModelLanguage(editor.getModel(), editorLanguage);
+                }
+            }
+        });
+
+        document.getElementById('save-file').addEventListener('click', async () => {
+            const content = editor.getValue();
+            const result = await window.electron.fileSystem.saveFile(content);
+            if (result) {
+                document.getElementById('file-path').textContent = result;
+                currentFilePath = result;
+            }
+        });
+
+        // Manejar atajos de teclado
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                document.getElementById('save-file').click();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                e.preventDefault();
+                document.getElementById('open-file').click();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                document.getElementById('new-file').click();
+            }
+        });
+
+        // Variable para rastrear el archivo actual
+        let currentFilePath = null;
     </script>
 </body>
 
