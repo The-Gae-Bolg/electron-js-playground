@@ -232,17 +232,21 @@
                 }
                 // --- Captura variables ---
                 const varNames = [];
+                const varLines = {};
                 const varRegex = /^(\s*)(let|const|var)\s+([a-zA-Z_$][\w$]*)/gm;
                 let match;
                 while ((match = varRegex.exec(code)) !== null) {
                     varNames.push(match[3]);
+                    // Guardar la línea de declaración (basado en saltos de línea previos)
+                    const before = code.slice(0, match.index);
+                    varLines[match[3]] = (before.match(/\n/g) || []).length + 1;
                 }
                 // Creamos un objeto para exponer las variables
                 let varsProxy = {};
-                // Instrumentamos el código para exponer las variables en varsProxy
+                // Instrumentamos el código para exponer solo variables globales
                 let instrumentedCode = code + '\n';
                 varNames.forEach(v => {
-                    instrumentedCode += `try { window.__playground_vars__['${v}'] = ${v}; } catch (e) { window.__playground_vars__['${v}'] = '<no evaluado>'; }\n`;
+                    instrumentedCode += `try { if (window.hasOwnProperty('${v}')) { window.__playground_vars__['${v}'] = ${v}; } else { window.__playground_vars__['${v}'] = ${v}; } } catch (e) { window.__playground_vars__['${v}'] = '<no evaluado>'; }\n`;
                 });
                 // Inicializamos el objeto global antes de ejecutar
                 window.__playground_vars__ = {};
@@ -299,9 +303,17 @@
                 if (varNames.length > 0) {
                     varsHtml = varNames.map(v => {
                         let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<no evaluado>';
-                        if (typeof value === 'object') value = JSON.stringify(value);
-                        return `<span style=\"color:#7ecfff\">${v}</span>: <span style=\"color:#baffb8\">${value}</span>`;
-                    }).join('<br>');
+                        // Solo mostrar si está en window.__playground_vars__ y no es undefined
+                        if (!(v in window.__playground_vars__)) return '';
+                        if (typeof value === 'function') {
+                            // Mostrar como fs() si es arrow, function () si es normal
+                            value = (/^\s*const\s+" + v + "\s*=\s*\(/.test(code) || /^\s*let\s+" + v + "\s*=\s*\(/.test(code)) ? 'fs()' : 'function ()';
+                        } else if (typeof value === 'object' && value !== null) {
+                            value = JSON.stringify(value);
+                        }
+                        return `<span style=\"color:#888\">[Line ${varLines[v]}]</span> <span style=\"color:#7ecfff\">${v}</span>: <span style=\"color:#baffb8\">${value}</span>`;
+                    }).filter(Boolean).join('<br>');
+                    if (!varsHtml) varsHtml = '<span style="color:#888">No se detectaron variables globales.</span>';
                 } else {
                     varsHtml = '<span style="color:#888">No se detectaron variables globales.</span>';
                 }
