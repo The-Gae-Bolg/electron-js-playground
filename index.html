@@ -785,13 +785,19 @@
 
                                 const nestedView = createExpandableObjectView(arg);
                                 nestedView.style.display = 'none';
+                                nestedView.style.marginLeft = '20px'; // Asegura que los elementos aparezcan debajo
 
                                 valueSpan.addEventListener('click', () => {
                                     nestedView.style.display = nestedView.style.display === 'none' ? 'block' : 'none';
                                 });
 
-                                logEntry.appendChild(valueSpan);
-                                logEntry.appendChild(nestedView);
+                                const wrapper = document.createElement('div');
+                                wrapper.style.display = 'flex';
+                                wrapper.style.flexDirection = 'column'; // Cambia la dirección para que los elementos estén debajo
+                                wrapper.appendChild(valueSpan);
+                                wrapper.appendChild(nestedView);
+
+                                logEntry.appendChild(wrapper);
                             } else if (typeof arg === 'object' && arg !== null) {
                                 const expandableView = createExpandableObjectView(arg);
                                 logEntry.appendChild(expandableView);
