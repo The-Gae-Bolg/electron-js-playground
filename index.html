@@ -544,15 +544,21 @@
                         let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<not evaluated>';
                         if (!(v in window.__playground_vars__)) return '';
                         if (typeof value === 'string') {
-                            value = `'${value}'`; // Agregar comillas a las cadenas
-                        } else if (typeof value === 'function') {
-                            // Detectar si es arrow function (fs()) o function normal
-                            const arrowRegex = new RegExp(`(const|let|var)\\s+${v}\\s*=\\s*\\(`);
-                            value = arrowRegex.test(code) ? 'fs()' : 'function ()';
+                            value = `<span style=\"color:#ffa07a\">'${value}'</span>`; // Strings en color salmón
+                        } else if (typeof value === 'number') {
+                            value = `<span style=\"color:#ffd700\">${value}</span>`; // Números en color dorado
+                        } else if (typeof value === 'boolean') {
+                            value = `<span style=\"color:#00bfff\">${value}</span>`; // Booleanos en azul claro
+                        } else if (value === null) {
+                            value = `<span style=\"color:#1e90ff\">null</span>`; // Null en azul
+                        } else if (value === undefined) {
+                            value = `<span style=\"color:#1e90ff\">undefined</span>`; // Undefined en azul
                         } else if (typeof value === 'object' && value !== null) {
-                            value = JSON.stringify(value, null, 2);
+                            value = `<span style=\"color:#98fb98\">${JSON.stringify(value, null, 2)}</span>`; // Objetos en verde claro
+                        } else {
+                            value = `<span style=\"color:#e0e0e0\">${String(value)}</span>`; // Otros tipos en gris claro
                         }
-                        return `<span style=\"color:#fff\">[Line ${varLines[v]}]</span> <span style=\"color:#7ecfff\">${v}</span>: <span style=\"color:#baffb8\">${value}</span>`;
+                        return `<span style=\"color:#fff\">[Line ${varLines[v]}]</span> <span style=\"color:#7ecfff\">${v}</span>: ${value}`;
                     }).filter(Boolean).join('<br>');
                     if (!varsHtml) varsHtml = '<span style="color:#888">No global variables detected.</span>';
                 } else {
