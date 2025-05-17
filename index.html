@@ -259,17 +259,6 @@
 <body>
     <div class="header">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <div class="menu-buttons" style="display: flex; gap: 10px;">
-                <button id="new-file" class="menu-button" title="Nuevo archivo (Ctrl+N)">
-                    <i class="fas fa-file"></i> Nuevo
-                </button>
-                <button id="open-file" class="menu-button" title="Abrir archivo (Ctrl+O)">
-                    <i class="fas fa-folder-open"></i> Abrir
-                </button>
-                <button id="save-file" class="menu-button" title="Guardar (Ctrl+S)">
-                    <i class="fas fa-save"></i> Guardar
-                </button>
-            </div>
             <span id="file-path" style="margin-left: 10px; font-size: 0.8em; color: #7ecfff; opacity: 0.7; font-family: 'Cascadia Code PL', monospace;">
                 Sin título
             </span>
@@ -591,8 +580,8 @@
             }
         });
 
-        // Manejo de archivos
-        document.getElementById('new-file').addEventListener('click', async () => {
+        // Manejo de archivos desde menú nativo
+        window.electron.ipcRenderer.on('menu-new-file', async () => {
             const result = await window.electron.fileSystem.newFile();
             if (result) {
                 editor.setValue(result.content);
@@ -600,8 +589,7 @@
                 currentFilePath = null;
             }
         });
-
-        document.getElementById('open-file').addEventListener('click', async () => {
+        window.electron.ipcRenderer.on('menu-open-file', async () => {
             const result = await window.electron.fileSystem.openFile();
             if (result) {
                 editor.setValue(result.content);
@@ -625,8 +613,7 @@
                 }
             }
         });
-
-        document.getElementById('save-file').addEventListener('click', async () => {
+        window.electron.ipcRenderer.on('menu-save-file', async () => {
             const content = editor.getValue();
             const result = await window.electron.fileSystem.saveFile(content);
             if (result) {
@@ -635,17 +622,17 @@
             }
         });
 
-        // Manejar atajos de teclado
+        // Atajos de teclado para archivos (llaman a la lógica del menú)
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
-                document.getElementById('save-file').click();
+                window.electron.ipcRenderer.emit('menu-save-file');
             } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
                 e.preventDefault();
-                document.getElementById('open-file').click();
+                window.electron.ipcRenderer.emit('menu-open-file');
             } else if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
                 e.preventDefault();
-                document.getElementById('new-file').click();
+                window.electron.ipcRenderer.emit('menu-new-file');
             }
         });
 
