@@ -445,10 +445,12 @@
             Object.keys(variables).forEach((key) => {
                 const lineInfo = document.createElement('span');
                 lineInfo.textContent = `[Line ${varLines[key]}]: `;
-                lineInfo.style.color = '#7ecfff';
+                lineInfo.style.color = '#fff';
 
                 const expandableView = createExpandableObjectView({ [key]: variables[key] });
                 const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'flex-start';
                 wrapper.appendChild(lineInfo);
                 wrapper.appendChild(expandableView);
 
