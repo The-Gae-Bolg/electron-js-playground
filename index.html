@@ -844,6 +844,21 @@
               // Enviar a la consola original (DevTools)
               originalConsole[method](...args);
 
+              const line = (() => {
+                try {
+                  throw new Error();
+                } catch (err) {
+                  const stack = err.stack.split('\n');
+                  for (let i = 2; i < stack.length; i++) {
+                    const match = stack[i].match(/<anonymous>:(\d+):\d+/);
+                    if (match) {
+                      return parseInt(match[1], 10);
+                    }
+                  }
+                }
+                return '?';
+              })();
+
               // Resolver promesas antes de mostrar en la consola personalizada
               Promise.all(
                 args.map(async (arg) => {
@@ -859,6 +874,14 @@
               ).then((resolvedArgs) => {
                 const logEntry = document.createElement('div');
                 logEntry.style.marginBottom = '10px';
+                logEntry.style.display = 'flex';
+                logEntry.style.alignItems = 'flex-start';
+
+                const lineNumberContainer = document.createElement('div');
+                lineNumberContainer.textContent = `[Line ${line}]:`;
+                lineNumberContainer.style.color = '#7ecfff';
+                lineNumberContainer.style.marginRight = '10px';
+                lineNumberContainer.style.fontFamily = '"Cascadia Code PL", monospace';
 
                 resolvedArgs.forEach((arg) => {
                   if (typeof arg === 'object' && arg !== null) {
@@ -872,6 +895,7 @@
                   }
                 });
 
+                logEntry.prepend(lineNumberContainer);
                 outputContent.appendChild(logEntry);
               });
             };
