@@ -7,6 +7,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, 'logo.svg'), // Usa el logo.svg como icono de la app
     webPreferences: {
       nodeIntegration: false, // Cambiado a false por seguridad
       contextIsolation: true, // Activado para usar preload
