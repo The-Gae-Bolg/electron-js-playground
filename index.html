@@ -693,6 +693,24 @@
                     } else if (typeof value === 'function') {
                         valueSpan.textContent = 'fn()';
                         valueSpan.style.color = '#98fb98';
+                    } else if (typeof value === 'string') {
+                        valueSpan.textContent = `'${value}'`;
+                        valueSpan.style.color = '#ffa07a';
+                    } else if (typeof value === 'number') {
+                        valueSpan.textContent = value;
+                        valueSpan.style.color = '#ffd700';
+                    } else if (typeof value === 'boolean') {
+                        valueSpan.textContent = value ? 'true' : 'false';
+                        valueSpan.style.color = value ? '#00bfff' : '#ff4500';
+                    } else if (value === null) {
+                        valueSpan.textContent = 'null';
+                        valueSpan.style.color = '#1e90ff';
+                    } else if (typeof value === 'symbol') {
+                        valueSpan.textContent = value.toString();
+                        valueSpan.style.color = '#dda0dd';
+                    } else if (typeof value === 'bigint') {
+                        valueSpan.textContent = `${value}n`;
+                        valueSpan.style.color = '#ff8c00';
                     } else {
                         valueSpan.textContent = JSON.stringify(value);
                         valueSpan.style.color = '#e0e0e0';
