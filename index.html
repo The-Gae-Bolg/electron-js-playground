@@ -289,6 +289,7 @@
         const tsSwitch = document.getElementById('tsSwitch');
         const jsLabel = document.getElementById('jsLabel');
         const tsLabel = document.getElementById('tsLabel');
+        const AutoRunLabel = document.getElementById('AutoRunLabel');
         // Inicializa el editor en modo JavaScript
         let editorLanguage = 'javascript';
         tsSwitch.addEventListener('change', () => {
@@ -359,8 +360,17 @@
                 }
             });
         });
+        function updateAutoRunLabel() {
+            if (autoRunSwitch.checked) {
+                AutoRunLabel.style.opacity = '0.85';
+            } else {
+                AutoRunLabel.style.opacity = '0.3';
+            }
+        }
+        updateAutoRunLabel();
         autoRunSwitch.addEventListener('change', () => {
             autoRun = autoRunSwitch.checked;
+            updateAutoRunLabel();
             if (autoRun) executeCode();
         });
         window.addEventListener('keydown', function (e) {
