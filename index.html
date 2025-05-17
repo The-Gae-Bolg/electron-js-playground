@@ -71,9 +71,9 @@
         }
 
         .resizer {
-            background: #181c20;
-            z-index: 1;
-            transition: background 0.2s;
+            background: #4d7dc013;
+            border-radius: 2px;
+            transition: all 0.3s ease;
         }
 
         .container.horizontal .resizer {
@@ -89,7 +89,7 @@
         }
 
         .resizer:hover {
-            background: #3a7bd5;
+            background: #4d7dc081;
         }
 
         .editor-container,
@@ -273,6 +273,18 @@
             background: #181c20;
             border-radius: 4px;
         }
+
+        .resizer-horizontal {
+            height: 7px;
+            background: #4d7dc013;
+            cursor: row-resize;
+            margin: 5px 0;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .resizer-horizontal:hover {
+            background: #4d7dc081;
+        }
     </style>
 </head>
 
@@ -308,14 +320,15 @@
     </div>
 
     <div class="container horizontal" id="container">
-        <div class="editor-container" id="editor-container" style="width: 50%;">
+        <div class="editor-container" id="editor-container" style="width: 70%;">
             <div class="editor" id="editor"></div>
         </div>
         <div class="resizer" id="resizer"></div>
-        <div class="output-container" id="output-container" style="width: 50%;">
+        <div class="output-container" id="output-container" style="width: 30%;">
             <div class="output-title">Variables</div>
             <div class="output" id="variables-output"
-                style="margin-bottom:10px; min-height:40px; max-height:120px; overflow:auto;"></div>
+                style="margin-bottom:10px; min-height:100px; max-height:50%; overflow:auto;"></div>
+            <div class="resizer-horizontal" id="resizer-horizontal"></div>
             <div class="output-title">Console</div>
             <div class="output" id="output">
                 <pre style="font-family: 'Cascadia Code PL', Consolas, 'Courier New', monospace;"
@@ -716,6 +729,36 @@
                 );
                 editorContainer.style.width = `${(newEditorWidth / containerWidth) * 100}%`;
                 outputContainer.style.width = `${100 - (newEditorWidth / containerWidth) * 100}%`;
+            };
+
+            const onMouseUp = () => {
+                document.body.style.cursor = 'default';
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        // Agregar funcionalidad para ajustar el tamaño de la sección de variables y consola
+        const resizerHorizontal = document.getElementById('resizer-horizontal');
+        const variablesOutput = document.getElementById('variables-output');
+        const consoleOutput = document.getElementById('output');
+
+        resizerHorizontal.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            document.body.style.cursor = 'row-resize';
+
+            const onMouseMove = (event) => {
+                const containerHeight = resizerHorizontal.parentElement.offsetHeight;
+                const minHeight = 20; // Altura mínima para ambas secciones
+                const newVariablesHeight = Math.min(
+                    Math.max(event.clientY - variablesOutput.getBoundingClientRect().top, minHeight),
+                    containerHeight - minHeight - resizerHorizontal.offsetHeight
+                );
+                variablesOutput.style.height = `${newVariablesHeight}px`;
+                consoleOutput.style.height = `${containerHeight - newVariablesHeight - resizerHorizontal.offsetHeight}px`;
             };
 
             const onMouseUp = () => {
