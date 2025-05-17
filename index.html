@@ -141,15 +141,68 @@
             color: #00d2ff;
         }
         /* Monaco Editor theme override */
-        .monaco-editor, .monaco-editor-background, .monaco-editor .inputarea.ime-input {
+        .editor, .output, .output-title, .run-button, .monaco-editor, .monaco-editor-background, .monaco-editor .inputarea.ime-input {
             font-family: 'Cascadia Code PL', 'Consolas', 'Monaco', monospace !important;
+        }
+        .switch-label {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch-label input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #444;
+            border-radius: 24px;
+            transition: background 0.2s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .switch-label input:checked + .slider {
+            background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+        }
+        .switch-label input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .manual-hint {
+            color: #7ecfff;
+            font-size: 0.95em;
+            background: #23272e;
+            border-radius: 4px;
+            padding: 2px 10px;
+            margin-left: 4px;
+            font-family: 'Cascadia Code PL', monospace;
+            opacity: 0.85;
+            user-select: none;
         }
     </style>
 </head>
 <body>
     <div class="header">
         <div>CodePlay JS</div>
-        <button id="runButton" class="run-button">Run (Ctrl+Enter)</button>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <label class="switch-label">
+                <input type="checkbox" id="autoRunSwitch" checked>
+                <span class="slider"></span>
+            </label>
+            <span class="manual-hint">Press <b>Ctrl+Enter</b> for manual run</span>
+        </div>
     </div>
     
     <div class="container horizontal" id="container">
@@ -173,7 +226,7 @@
         let editor;
         let debounceTimeout;
         let autoRun = true;
-        const runButton = document.getElementById('runButton');
+        const autoRunSwitch = document.getElementById('autoRunSwitch');
         let lastCode = '';
         let orientation = 'horizontal';
         const container = document.getElementById('container');
@@ -201,13 +254,10 @@
                 }
             });
         });
-        runButton.addEventListener('click', () => {
-            autoRun = !autoRun;
-            runButton.textContent = autoRun ? 'Auto: ON (Ctrl+Enter for manual run)' : 'Auto: OFF (Click to enable)';
-            runButton.style.backgroundColor = autoRun ? '#4CAF50' : '#888';
+        autoRunSwitch.addEventListener('change', () => {
+            autoRun = autoRunSwitch.checked;
             if (autoRun) executeCode();
         });
-        runButton.textContent = 'Auto: ON (Ctrl+Enter for manual run)';
         window.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 executeCode();
