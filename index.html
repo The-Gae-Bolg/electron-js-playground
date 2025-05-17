@@ -2,8 +2,15 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>JS Playground</title>
+    <title>CodePlay JS</title>
     <style>
+        @font-face {
+            font-family: 'Cascadia Code PL';
+            src: url('CascadiaCodePL.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
         body {
             margin: 0;
             padding: 0;
@@ -141,21 +148,21 @@
 </head>
 <body>
     <div class="header">
-        <div>JavaScript Playground</div>
-        <button id="runButton" class="run-button">Ejecutar (Ctrl+Enter)</button>
+        <div>CodePlay JS</div>
+        <button id="runButton" class="run-button">Run (Ctrl+Enter)</button>
     </div>
     
-    <div class="container" id="container">
-        <div class="editor-container" id="editor-container">
+    <div class="container horizontal" id="container">
+        <div class="editor-container" id="editor-container" style="width: 50%;">
             <div class="editor" id="editor"></div>
         </div>
         <div class="resizer" id="resizer"></div>
-        <div class="output-container" id="output-container">
+        <div class="output-container" id="output-container" style="width: 50%;">
             <div class="output-title">Variables</div>
             <div class="output" id="variables-output" style="margin-bottom:10px; min-height:40px; max-height:120px; overflow:auto;"></div>
-            <div class="output-title">Consola</div>
+            <div class="output-title">Console</div>
             <div class="output" id="output">
-                <pre id="output-content">Ejecuta el código para ver los resultados aquí...</pre>
+                <pre id="output-content">Run your code to see the results here...</pre>
             </div>
         </div>
     </div>
@@ -176,7 +183,7 @@
         const outputContent = document.getElementById('output-content');
         require(['vs/editor/editor.main'], function() {
             editor = monaco.editor.create(document.getElementById('editor'), {
-                value: `// Escribe tu código JavaScript aquí\n// Por ejemplo:\nconst saludo = '¡Hola, mundo!';\nconsole.log(saludo);\n\n// El resultado aparecerá en la consola de la derecha`,
+                value: `// Write your JavaScript code here\n// For example:\nconst greeting = 'Hello, world!';\nconsole.log(greeting);\n\n// The result will appear in the console on the right`,
                 language: 'javascript',
                 theme: 'vs-dark',
                 automaticLayout: true,
@@ -196,11 +203,11 @@
         });
         runButton.addEventListener('click', () => {
             autoRun = !autoRun;
-            runButton.textContent = autoRun ? 'Auto: ON (Ctrl+Enter ejecuta manual)' : 'Auto: OFF (Click para activar)';
+            runButton.textContent = autoRun ? 'Auto: ON (Ctrl+Enter for manual run)' : 'Auto: OFF (Click to enable)';
             runButton.style.backgroundColor = autoRun ? '#4CAF50' : '#888';
             if (autoRun) executeCode();
         });
-        runButton.textContent = 'Auto: ON (Ctrl+Enter ejecuta manual)';
+        runButton.textContent = 'Auto: ON (Ctrl+Enter for manual run)';
         window.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 executeCode();
@@ -246,7 +253,7 @@
                 // Instrumentamos el código para exponer solo variables globales
                 let instrumentedCode = code + '\n';
                 varNames.forEach(v => {
-                    instrumentedCode += `try { if (window.hasOwnProperty('${v}')) { window.__playground_vars__['${v}'] = ${v}; } else { window.__playground_vars__['${v}'] = ${v}; } } catch (e) { window.__playground_vars__['${v}'] = '<no evaluado>'; }\n`;
+                    instrumentedCode += `try { if (window.hasOwnProperty('${v}')) { window.__playground_vars__['${v}'] = ${v}; } else { window.__playground_vars__['${v}'] = ${v}; } } catch (e) { window.__playground_vars__['${v}'] = '<not evaluated>'; }\n`;
                 });
                 // Inicializamos el objeto global antes de ejecutar
                 window.__playground_vars__ = {};
@@ -302,20 +309,20 @@
                 // Mostrar variables y valores
                 if (varNames.length > 0) {
                     varsHtml = varNames.map(v => {
-                        let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<no evaluado>';
-                        // Solo mostrar si está en window.__playground_vars__ y no es undefined
+                        let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<not evaluated>';
                         if (!(v in window.__playground_vars__)) return '';
                         if (typeof value === 'function') {
-                            // Mostrar como fs() si es arrow, function () si es normal
-                            value = (/^\s*const\s+" + v + "\s*=\s*\(/.test(code) || /^\s*let\s+" + v + "\s*=\s*\(/.test(code)) ? 'fs()' : 'function ()';
+                            // Detectar si es arrow function (fs()) o function normal
+                            const arrowRegex = new RegExp(`(const|let|var)\\s+${v}\\s*=\\s*\\(`);
+                            value = arrowRegex.test(code) ? 'fs()' : 'function ()';
                         } else if (typeof value === 'object' && value !== null) {
                             value = JSON.stringify(value);
                         }
                         return `<span style=\"color:#888\">[Line ${varLines[v]}]</span> <span style=\"color:#7ecfff\">${v}</span>: <span style=\"color:#baffb8\">${value}</span>`;
                     }).filter(Boolean).join('<br>');
-                    if (!varsHtml) varsHtml = '<span style="color:#888">No se detectaron variables globales.</span>';
+                    if (!varsHtml) varsHtml = '<span style="color:#888">No global variables detected.</span>';
                 } else {
-                    varsHtml = '<span style="color:#888">No se detectaron variables globales.</span>';
+                    varsHtml = '<span style="color:#888">No global variables detected.</span>';
                 }
                 variablesOutput.innerHTML = varsHtml;
                 // ---
@@ -327,11 +334,11 @@
                 if (logs.length > 0) {
                     outputContent.innerHTML = logs.map(l => `<span style=\"color:#e0e0e0\">${l}</span>`).join('<br>');
                 } else {
-                    outputContent.innerHTML = '<span style="color:#888">No se detectaron mensajes en consola.</span>';
+                    outputContent.innerHTML = '<span style="color:#888">No console messages detected.</span>';
                 }
             } catch (error) {
-                variablesOutput.innerHTML = '<span style="color:#888">No se detectaron variables globales.</span>';
-                outputContent.innerHTML = `<span class=\"error\">✗ Error en la ejecución</span>\n\n${error}`;
+                variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
+                outputContent.innerHTML = `<span class=\"error\">✗ Execution error</span>\n\n${error}`;
             }
         }
 
@@ -339,70 +346,17 @@
             const code = editor.getValue();
             const outputContent = document.getElementById('output-content');
             if (result.success) {
-                let output = `<span class=\"success\">✓ Ejecución exitosa</span>\n`;
-                if (result.result !== 'undefined') {
-                    output += `\n<b>Resultado:</b> ${result.result} (${result.type})`;
-                } else {
-                    output += `\nEl código se ejecutó correctamente.`;
+                let output = `<span class=\"success\">✓ Successful execution</span>\n`;
+                if (result.stdout) {
+                    output += `<span style="color:#baffb8">${result.stdout}</span>\n`;
+                }
+                if (result.stderr) {
+                    output += `<span class=\"error\">${result.stderr}</span>\n`;
                 }
                 outputContent.innerHTML = output;
             } else {
-                outputContent.innerHTML = `<span class=\"error\">✗ Error en la ejecución</span>\n\n${result.error}`;
+                outputContent.innerHTML = `<span class=\"error\">✗ Execution error</span>\n\n${result.error}`;
             }
-            outputContent.scrollTop = outputContent.scrollHeight;
-        });
-        
-        function setOrientation(orient) {
-            orientation = orient;
-            if (orient === 'horizontal') {
-                container.classList.remove('vertical');
-                container.classList.add('horizontal');
-                editorContainer.style.width = '50%';
-                editorContainer.style.height = '';
-                outputContainer.style.width = '50%';
-                outputContainer.style.height = '';
-            } else {
-                container.classList.remove('horizontal');
-                container.classList.add('vertical');
-                editorContainer.style.height = '50%';
-                editorContainer.style.width = '';
-                outputContainer.style.height = '50%';
-                outputContainer.style.width = '';
-            }
-        }
-        setOrientation('horizontal');
-
-        toggleOrientation.addEventListener('click', () => {
-            setOrientation(orientation === 'horizontal' ? 'vertical' : 'horizontal');
-        });
-
-        // Resizable logic
-        let isResizing = false;
-        resizer.addEventListener('mousedown', function(e) {
-            isResizing = true;
-            document.body.style.cursor = orientation === 'horizontal' ? 'col-resize' : 'row-resize';
-        });
-        document.addEventListener('mousemove', function(e) {
-            if (!isResizing) return;
-            if (orientation === 'horizontal') {
-                const containerRect = container.getBoundingClientRect();
-                let x = e.clientX - containerRect.left;
-                x = Math.max(100, Math.min(x, containerRect.width - 100));
-                const percent = (x / containerRect.width) * 100;
-                editorContainer.style.width = percent + '%';
-                outputContainer.style.width = (100 - percent) + '%';
-            } else {
-                const containerRect = container.getBoundingClientRect();
-                let y = e.clientY - containerRect.top;
-                y = Math.max(100, Math.min(y, containerRect.height - 100));
-                const percent = (y / containerRect.height) * 100;
-                editorContainer.style.height = percent + '%';
-                outputContainer.style.height = (100 - percent) + '%';
-            }
-        });
-        document.addEventListener('mouseup', function() {
-            isResizing = false;
-            document.body.style.cursor = '';
         });
     </script>
 </body>
