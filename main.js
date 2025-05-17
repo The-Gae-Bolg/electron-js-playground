@@ -85,20 +85,25 @@ ipcMain.handle('dialog:openFile', async () => {
 });
 
 // Manejar el guardado de archivos
-ipcMain.handle('dialog:saveFile', async (event, content) => {
-  const { canceled, filePath } = await dialog.showSaveDialog({
-    title: 'Guardar archivo',
-    filters: [
-      { name: 'JavaScript', extensions: ['js'] },
-      { name: 'TypeScript', extensions: ['ts'] },
-      { name: 'Todos los archivos', extensions: ['*'] }
-    ]
-  });
-  
-  if (canceled) return null;
-  
-  fs.writeFileSync(filePath, content, 'utf-8');
-  return filePath;
+ipcMain.handle('dialog:saveFile', async (event, content, filePath) => {
+  if (filePath) {
+    // Si ya hay un filePath, guardar directamente
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return filePath;
+  } else {
+    // Si no hay filePath, mostrar diálogo para guardar
+    const { canceled, filePath: dialogPath } = await dialog.showSaveDialog({
+      title: 'Guardar archivo',
+      filters: [
+        { name: 'JavaScript', extensions: ['js'] },
+        { name: 'TypeScript', extensions: ['ts'] },
+        { name: 'Todos los archivos', extensions: ['*'] }
+      ]
+    });
+    if (canceled) return null;
+    fs.writeFileSync(dialogPath, content, 'utf-8');
+    return dialogPath;
+  }
 });
 
 // Manejar la creación de un nuevo archivo

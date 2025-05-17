@@ -581,20 +581,25 @@
         });
 
         // --- Lógica de manejo de archivos ---
+        let currentFilePath = null;
+        let currentFileName = null;
+
         async function handleNewFile() {
             const result = await window.electron.fileSystem.newFile();
             if (result) {
                 editor.setValue(result.content);
-                document.getElementById('file-path').textContent = 'Sin título';
                 currentFilePath = null;
+                currentFileName = 'Untitled.js';
+                document.getElementById('file-path').textContent = currentFileName;
             }
         }
         async function handleOpenFile() {
             const result = await window.electron.fileSystem.openFile();
             if (result) {
                 editor.setValue(result.content);
-                document.getElementById('file-path').textContent = result.filePath || 'Sin título';
                 currentFilePath = result.filePath;
+                currentFileName = result.filePath.split(/[\\/]/).pop();
+                document.getElementById('file-path').textContent = result.filePath || currentFileName;
                 // Actualizar el modo del editor según la extensión del archivo
                 if (result.filePath) {
                     const ext = result.filePath.split('.').pop().toLowerCase();
@@ -615,10 +620,18 @@
         }
         async function handleSaveFile() {
             const content = editor.getValue();
-            const result = await window.electron.fileSystem.saveFile(content);
-            if (result) {
-                document.getElementById('file-path').textContent = result;
-                currentFilePath = result;
+            // Si ya hay un archivo abierto, guardar sobre ese mismo
+            if (currentFilePath) {
+                await window.electron.fileSystem.saveFile(content, currentFilePath);
+                document.getElementById('file-path').textContent = currentFilePath;
+            } else {
+                // Si es un archivo nuevo, sugerir nombre por defecto
+                const result = await window.electron.fileSystem.saveFile(content, currentFileName || 'Untitled.js');
+                if (result) {
+                    currentFilePath = result;
+                    currentFileName = result.split(/[\\/]/).pop();
+                    document.getElementById('file-path').textContent = result;
+                }
             }
         }
         // --- Listeners del menú nativo ---
@@ -638,9 +651,6 @@
                 handleNewFile();
             }
         });
-
-        // Variable para rastrear el archivo actual
-        let currentFilePath = null;
     </script>
 </body>
 

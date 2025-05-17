@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('electron', {
   },
   fileSystem: {
     openFile: () => ipcRenderer.invoke('dialog:openFile'),
-    saveFile: (content) => ipcRenderer.invoke('dialog:saveFile', content),
+    saveFile: (content, suggestedName) => ipcRenderer.invoke('dialog:saveFile', content, suggestedName),
     newFile: () => ipcRenderer.invoke('dialog:newFile')
   }
 });
