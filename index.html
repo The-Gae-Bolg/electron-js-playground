@@ -550,12 +550,14 @@
                     varsHtml = varNames.map(v => {
                         let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<not evaluated>';
                         if (!(v in window.__playground_vars__)) return '';
-                        if (typeof value === 'function') {
+                        if (typeof value === 'string') {
+                            value = `'${value}'`; // Agregar comillas a las cadenas
+                        } else if (typeof value === 'function') {
                             // Detectar si es arrow function (fs()) o function normal
                             const arrowRegex = new RegExp(`(const|let|var)\\s+${v}\\s*=\\s*\\(`);
                             value = arrowRegex.test(code) ? 'fs()' : 'function ()';
                         } else if (typeof value === 'object' && value !== null) {
-                            value = JSON.stringify(value);
+                            value = JSON.stringify(value, null, 2);
                         }
                         return `<span style=\"color:#fff\">[Line ${varLines[v]}]</span> <span style=\"color:#7ecfff\">${v}</span>: <span style=\"color:#baffb8\">${value}</span>`;
                     }).filter(Boolean).join('<br>');
