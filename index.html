@@ -516,6 +516,8 @@
                             value = `<span style=\"color:#1e90ff\">null</span>`;
                         } else if (value === undefined) {
                             value = `<span style=\"color:#1e90ff\">undefined</span>`;
+                        } else if (typeof value === 'function') {
+                            value = `<span style=\"color:#98fb98\">fs ()</span>`;
                         } else if (typeof value === 'object' && value !== null) {
                             value = `<span style=\"color:#98fb98\">${JSON.stringify(value, null, 2)}</span>`;
                         } else {
