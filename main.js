@@ -52,6 +52,57 @@ function createWindow() {
           role: 'quit'
         }
       ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Reload',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            mainWindow.reload();
+          }
+        },
+        {
+          label: 'Zoom In',
+          accelerator: 'CmdOrCtrl+Plus',
+          click: () => {
+            const currentZoom = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(currentZoom + 0.1);
+          }
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: 'CmdOrCtrl+-',
+          click: () => {
+            const currentZoom = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(currentZoom - 0.1);
+          }
+        },
+        {
+          label: 'Reset Zoom',
+          accelerator: 'CmdOrCtrl+0',
+          click: () => {
+            mainWindow.webContents.setZoomFactor(1);
+          }
+        }
+      ]
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About',
+          click: () => {
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'About',
+              message: 'Electron Playground\nVersion 1.0.0',
+              buttons: ['OK']
+            });
+          }
+        }
+      ]
     }
   ];
   const menu = Menu.buildFromTemplate(template);
