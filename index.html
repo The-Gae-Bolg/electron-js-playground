@@ -791,8 +791,53 @@
             }
         }
 
+        function createExpandableObjectView(obj) {
+          const container = document.createElement('div');
+          container.style.marginLeft = '10px';
+
+          Object.keys(obj).forEach((key) => {
+            const propertyRow = document.createElement('div');
+            const keySpan = document.createElement('span');
+            keySpan.textContent = key + ': ';
+            keySpan.style.color = '#7ecfff';
+
+            const valueSpan = document.createElement('span');
+            const value = obj[key];
+
+            if (typeof value === 'object' && value !== null) {
+              valueSpan.textContent = '{...}';
+              valueSpan.style.color = '#98fb98';
+              valueSpan.style.cursor = 'pointer';
+
+              const nestedView = createExpandableObjectView(value);
+              nestedView.style.display = 'none';
+
+              valueSpan.addEventListener('click', () => {
+                nestedView.style.display = nestedView.style.display === 'none' ? 'block' : 'none';
+              });
+
+              propertyRow.appendChild(keySpan);
+              propertyRow.appendChild(valueSpan);
+              propertyRow.appendChild(nestedView);
+            } else {
+              valueSpan.textContent = JSON.stringify(value);
+              valueSpan.style.color = '#e0e0e0';
+              propertyRow.appendChild(keySpan);
+              propertyRow.appendChild(valueSpan);
+            }
+
+            container.appendChild(propertyRow);
+          });
+
+          return container;
+        }
+
         function redirectDevToolsConsole() {
           const originalConsole = { ...console };
+          const outputContent = document.getElementById('output-content');
+
+          // Almacenar un historial de logs para evitar duplicados
+          const logHistory = new Set();
 
           ['log', 'warn', 'error', 'info', 'debug'].forEach((method) => {
             console[method] = (...args) => {
@@ -812,9 +857,21 @@
                   return arg;
                 })
               ).then((resolvedArgs) => {
-                const outputContent = document.getElementById('output-content');
                 const logEntry = document.createElement('div');
-                logEntry.textContent = `[${method.toUpperCase()}]: ${resolvedArgs.map(arg => JSON.stringify(arg)).join(' ')}`;
+                logEntry.style.marginBottom = '10px';
+
+                resolvedArgs.forEach((arg) => {
+                  if (typeof arg === 'object' && arg !== null) {
+                    const expandableView = createExpandableObjectView(arg);
+                    logEntry.appendChild(expandableView);
+                  } else {
+                    const textNode = document.createElement('div');
+                    textNode.textContent = JSON.stringify(arg);
+                    textNode.style.color = '#e0e0e0';
+                    logEntry.appendChild(textNode);
+                  }
+                });
+
                 outputContent.appendChild(logEntry);
               });
             };
