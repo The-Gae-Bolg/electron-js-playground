@@ -684,8 +684,19 @@
                     propertyRow.appendChild(valueSpan);
                     propertyRow.appendChild(nestedView);
                 } else {
-                    valueSpan.textContent = JSON.stringify(value);
-                    valueSpan.style.color = '#e0e0e0';
+                    if (value === undefined) {
+                        valueSpan.textContent = 'undefined';
+                        valueSpan.style.color = '#1e90ff';
+                    } else if (Number.isNaN(value)) {
+                        valueSpan.textContent = 'NaN';
+                        valueSpan.style.color = '#ff6347';
+                    } else if (typeof value === 'function') {
+                        valueSpan.textContent = 'fn()';
+                        valueSpan.style.color = '#98fb98';
+                    } else {
+                        valueSpan.textContent = JSON.stringify(value);
+                        valueSpan.style.color = '#e0e0e0';
+                    }
                     propertyRow.appendChild(keySpan);
                     propertyRow.appendChild(valueSpan);
                 }
