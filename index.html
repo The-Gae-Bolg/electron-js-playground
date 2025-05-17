@@ -245,10 +245,18 @@
                 Creative</span>
         </div>
         <div style="display: flex; align-items: center; gap: 16px;">
-            <label class="switch-label">
+            <label class="switch-label" title="Auto Run">
                 <input type="checkbox" id="autoRunSwitch" checked>
                 <span class="slider"></span>
             </label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span id="jsLabel" style="font-size:0.75em; color:#7ecfff; opacity:0.7; font-family:'Cascadia Code PL', monospace;">JS</span>
+                <label class="switch-label" title="TypeScript Mode">
+                    <input type="checkbox" id="tsSwitch">
+                    <span class="slider"></span>
+                </label>
+                <span id="tsLabel" style="font-size:0.75em; color:#7ecfff; opacity:0.3; font-family:'Cascadia Code PL', monospace;">TS</span>
+            </div>
             <span class="manual-hint">Press <b>Ctrl+Enter</b> for manual run</span>
         </div>
     </div>
@@ -270,6 +278,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/5.4.5/typescript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
     <script>
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
@@ -277,6 +286,25 @@
         let debounceTimeout;
         let autoRun = true;
         const autoRunSwitch = document.getElementById('autoRunSwitch');
+        const tsSwitch = document.getElementById('tsSwitch');
+        const jsLabel = document.getElementById('jsLabel');
+        const tsLabel = document.getElementById('tsLabel');
+        // Inicializa el editor en modo JavaScript
+        let editorLanguage = 'javascript';
+        tsSwitch.addEventListener('change', () => {
+            editorLanguage = tsSwitch.checked ? 'typescript' : 'javascript';
+            monaco.editor.setModelLanguage(editor.getModel(), editorLanguage);
+            if(tsSwitch.checked) {
+                jsLabel.style.opacity = '0.3';
+                tsLabel.style.opacity = '0.7';
+            } else {
+                jsLabel.style.opacity = '0.7';
+                tsLabel.style.opacity = '0.3';
+            }
+        });
+        // Al cargar, asegúrate de que JS esté resaltado
+        jsLabel.style.opacity = '0.7';
+        tsLabel.style.opacity = '0.3';
         let lastCode = '';
         let orientation = 'horizontal';
         const container = document.getElementById('container');
@@ -286,7 +314,7 @@
         const outputContent = document.getElementById('output-content');
         require(['vs/editor/editor.main'], function () {
             editor = monaco.editor.create(document.getElementById('editor'), {
-                value: `// Write your JavaScript code here\n// For example:\nconst greeting = 'Hello, world!';\nconsole.log(greeting);\n\n// The result will appear in the console on the right`,
+                value: `// Write your JavaScript or TypeScript code here\n// For example:\nconst greeting: string = 'Hello, world!';\nconsole.log(greeting);\n\n// The result will appear in the console on the right`,
                 language: 'javascript',
                 theme: 'vs-dark',
                 automaticLayout: true,
@@ -431,8 +459,38 @@
                     }
                     logs.push(html);
                 };
-                // Ejecutamos el código instrumentado
-                eval(instrumentedCode);
+                // --- COMPILACIÓN TS ---
+                let codeToEval = instrumentedCode;
+                if (editorLanguage === 'typescript') {
+                    try {
+                        const transpileResult = window.ts.transpileModule(instrumentedCode, { compilerOptions: { module: window.ts.ModuleKind.None, target: window.ts.ScriptTarget.ESNext } });
+                        if (transpileResult.diagnostics && transpileResult.diagnostics.length > 0) {
+                            let tsErrors = transpileResult.diagnostics.map(d => d.messageText).join('<br>');
+                            outputContent.innerHTML = `<span class=\"error\">TypeScript compile error:</span><br>${tsErrors}`;
+                            variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
+                            // Restaurar consola
+                            console.log = originalLog;
+                            console.warn = originalWarn;
+                            console.error = originalError;
+                            console.info = originalInfo;
+                            console.table = originalTable;
+                            return;
+                        }
+                        codeToEval = transpileResult.outputText;
+                    } catch (tsErr) {
+                        outputContent.innerHTML = `<span class=\"error\">TypeScript transpile error:</span><br>${tsErr}`;
+                        variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
+                        // Restaurar consola
+                        console.log = originalLog;
+                        console.warn = originalWarn;
+                        console.error = originalError;
+                        console.info = originalInfo;
+                        console.table = originalTable;
+                        return;
+                    }
+                }
+                // Ejecutamos el código (ya JS si era TS)
+                eval(codeToEval);
                 // Mostrar variables y valores
                 if (varNames.length > 0) {
                     varsHtml = varNames.map(v => {
