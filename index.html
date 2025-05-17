@@ -438,99 +438,45 @@
                 executeCode();
             }
         });
+        function renderVariablesAsTree(variables, varLines) {
+            const container = document.getElementById('variables-output');
+            container.innerHTML = '';
+
+            Object.keys(variables).forEach((key) => {
+                const lineInfo = document.createElement('span');
+                lineInfo.textContent = `[Line ${varLines[key]}]: `;
+                lineInfo.style.color = '#7ecfff';
+
+                const expandableView = createExpandableObjectView({ [key]: variables[key] });
+                const wrapper = document.createElement('div');
+                wrapper.appendChild(lineInfo);
+                wrapper.appendChild(expandableView);
+
+                container.appendChild(wrapper);
+            });
+        }
+
         function executeCode() {
             const code = editor.getValue();
             outputContent.innerHTML = '';
             const variablesOutput = document.getElementById('variables-output');
-            let varsHtml = ''; 
             try {
-                let logs = [];
-
-                // Utilidad para obtener la línea de ejecución
-                function getLine() {
-                    const err = new Error();
-                    const stack = err.stack.split('\n');
-                    for (let i = 2; i < stack.length; i++) {
-                        const match = stack[i].match(/<anonymous>:(\d+):\d+/);
-                        if (match) {
-                            return parseInt(match[1], 10);
-                        }
-                    }
-                    return '?';
-                }
-                // --- Captura variables ---
                 const varNames = [];
                 const varLines = {};
-                const varRegex = /^\s*(let|const|var)\s+([a-zA-Z_$][\w$]*)/gm;
+                const varRegex = /\b(let|const|var)\s+([a-zA-Z_$][\w$]*)/g;
                 let match;
                 while ((match = varRegex.exec(code)) !== null) {
                     varNames.push(match[2]);
-                    // Guardar la línea de declaración (basado en saltos de línea previos)
                     const before = code.slice(0, match.index);
                     varLines[match[2]] = (before.match(/\n/g) || []).length + 1;
                 }
 
-                // Creamos un objeto para exponer las variables
-                let varsProxy = {};
-                let instrumentedCode = code + '\n';
-                varNames.forEach(v => {
-                    instrumentedCode += `try { if (window.hasOwnProperty('${v}')) { window.__playground_vars__['${v}'] = ${v}; } else { window.__playground_vars__['${v}'] = ${v}; } } catch (e) { window.__playground_vars__['${v}'] = '<not evaluated>'; }\n`;
-                });
-
                 window.__playground_vars__ = {};
+                const instrumentedCode = code + '\n' + varNames.map(v => `try { window.__playground_vars__['${v}'] = ${v}; } catch (e) { window.__playground_vars__['${v}'] = '<not evaluated>'; }`).join('\n');
 
-                // --- COMPILACIÓN TS ---
-                let codeToEval = instrumentedCode;
-                if (editorLanguage === 'typescript') {
-                    try {
-                        const transpileResult = window.ts.transpileModule(instrumentedCode, { compilerOptions: { module: window.ts.ModuleKind.None, target: window.ts.ScriptTarget.ESNext } });
-                        if (transpileResult.diagnostics && transpileResult.diagnostics.length > 0) {
-                            let tsErrors = transpileResult.diagnostics.map(d => d.messageText).join('<br>');
-                            outputContent.innerHTML = `<span class=\"error\">TypeScript compile error:</span><br>${tsErrors}`;
-                            variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
-                            return;
-                        }
-                        codeToEval = transpileResult.outputText;
-                    } catch (tsErr) {
-                        outputContent.innerHTML = `<span class=\"error\">TypeScript transpile error:</span><br>${tsErr}`;
-                        variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
-                        return;
-                    }
-                }
+                eval(instrumentedCode);
 
-                // Ejecutamos el código (ya JS si era TS)
-                eval(codeToEval);
-
-                // Mostrar variables y valores
-                if (varNames.length > 0) {
-                    varsHtml = varNames.map(v => {
-                        let value = window.__playground_vars__ ? window.__playground_vars__[v] : '<not evaluated>';
-                        if (!(v in window.__playground_vars__)) return '';
-                        if (typeof value === 'string') {
-                            value = `<span style=\"color:#ffa07a\">'${value}'</span>`;
-                        } else if (typeof value === 'number') {
-                            value = `<span style=\"color:#ffd700\">${value}</span>`;
-                        } else if (typeof value === 'boolean') {
-                            value = `<span style=\"color:#00bfff\">${value}</span>`;
-                        } else if (value === null) {
-                            value = `<span style=\"color:#1e90ff\">null</span>`;
-                        } else if (value === undefined) {
-                            value = `<span style=\"color:#1e90ff\">undefined</span>`;
-                        } else if (typeof value === 'function') {
-                            value = `<span style=\"color:#98fb98\">fs ()</span>`;
-                        } else if (typeof value === 'object' && value !== null) {
-                            value = `<span style=\"color:#98fb98\">${JSON.stringify(value, null, 2)}</span>`;
-                        } else {
-                            value = `<span style=\"color:#e0e0e0\">${String(value)}</span>`;
-                        }
-                        return `<span style=\"color:#fff\">[Line ${varLines[v]}]</span> <span style=\"color:#7ecfff\">${v}</span>: ${value}`;
-                    }).filter(Boolean).join('<br>');
-                    if (!varsHtml) varsHtml = '<span style="color:#888">No global variables detected.</span>';
-                } else {
-                    varsHtml = '<span style="color:#888">No global variables detected.</span>';
-                }
-                variablesOutput.innerHTML = varsHtml;
-
+                renderVariablesAsTree(window.__playground_vars__, varLines);
             } catch (error) {
                 variablesOutput.innerHTML = '<span style="color:#888">No global variables detected.</span>';
                 outputContent.innerHTML = `<span class="error">✗ Execution error</span>\n\n${error}`;
@@ -693,44 +639,59 @@
         });
 
         function createExpandableObjectView(obj) {
-          const container = document.createElement('div');
-          container.style.marginLeft = '10px';
+            const container = document.createElement('div');
+            container.style.marginLeft = '10px';
 
-          Object.keys(obj).forEach((key) => {
-            const propertyRow = document.createElement('div');
-            const keySpan = document.createElement('span');
-            keySpan.textContent = key + ': ';
-            keySpan.style.color = '#7ecfff';
+            Object.keys(obj).forEach((key) => {
+                const propertyRow = document.createElement('div');
+                const keySpan = document.createElement('span');
+                keySpan.textContent = key + ': ';
+                keySpan.style.color = '#7ecfff';
 
-            const valueSpan = document.createElement('span');
-            const value = obj[key];
+                const valueSpan = document.createElement('span');
+                const value = obj[key];
 
-            if (typeof value === 'object' && value !== null) {
-              valueSpan.textContent = '{...}';
-              valueSpan.style.color = '#98fb98';
-              valueSpan.style.cursor = 'pointer';
+                if (Array.isArray(value)) {
+                    valueSpan.textContent = '[...]';
+                    valueSpan.style.color = '#98fb98';
+                    valueSpan.style.cursor = 'pointer';
 
-              const nestedView = createExpandableObjectView(value);
-              nestedView.style.display = 'none';
+                    const nestedView = createExpandableObjectView(value);
+                    nestedView.style.display = 'none';
 
-              valueSpan.addEventListener('click', () => {
-                nestedView.style.display = nestedView.style.display === 'none' ? 'block' : 'none';
-              });
+                    valueSpan.addEventListener('click', () => {
+                        nestedView.style.display = nestedView.style.display === 'none' ? 'block' : 'none';
+                    });
 
-              propertyRow.appendChild(keySpan);
-              propertyRow.appendChild(valueSpan);
-              propertyRow.appendChild(nestedView);
-            } else {
-              valueSpan.textContent = JSON.stringify(value);
-              valueSpan.style.color = '#e0e0e0';
-              propertyRow.appendChild(keySpan);
-              propertyRow.appendChild(valueSpan);
-            }
+                    propertyRow.appendChild(keySpan);
+                    propertyRow.appendChild(valueSpan);
+                    propertyRow.appendChild(nestedView);
+                } else if (typeof value === 'object' && value !== null) {
+                    valueSpan.textContent = '{...}';
+                    valueSpan.style.color = '#98fb98';
+                    valueSpan.style.cursor = 'pointer';
 
-            container.appendChild(propertyRow);
-          });
+                    const nestedView = createExpandableObjectView(value);
+                    nestedView.style.display = 'none';
 
-          return container;
+                    valueSpan.addEventListener('click', () => {
+                        nestedView.style.display = nestedView.style.display === 'none' ? 'block' : 'none';
+                    });
+
+                    propertyRow.appendChild(keySpan);
+                    propertyRow.appendChild(valueSpan);
+                    propertyRow.appendChild(nestedView);
+                } else {
+                    valueSpan.textContent = JSON.stringify(value);
+                    valueSpan.style.color = '#e0e0e0';
+                    propertyRow.appendChild(keySpan);
+                    propertyRow.appendChild(valueSpan);
+                }
+
+                container.appendChild(propertyRow);
+            });
+
+            return container;
         }
 
         function redirectDevToolsConsole() {
