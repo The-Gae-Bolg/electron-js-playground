@@ -85,24 +85,33 @@ ipcMain.handle('dialog:openFile', async () => {
 });
 
 // Manejar el guardado de archivos
-ipcMain.handle('dialog:saveFile', async (event, content, filePath) => {
-  if (filePath) {
-    // Si ya hay un filePath, guardar directamente
-    fs.writeFileSync(filePath, content, 'utf-8');
-    return filePath;
+ipcMain.handle('dialog:saveFile', async (event, content, suggestedName = 'Untitled.js') => {
+  // Si se proporciona una ruta de archivo completa, guardar directamente
+  if (suggestedName && suggestedName.includes(path.sep)) {
+    fs.writeFileSync(suggestedName, content, 'utf-8');
+    return suggestedName;
   } else {
-    // Si no hay filePath, mostrar diálogo para guardar
-    const { canceled, filePath: dialogPath } = await dialog.showSaveDialog({
+    // Mostrar diálogo para guardar con el nombre sugerido
+    const { canceled, filePath } = await dialog.showSaveDialog({
       title: 'Guardar archivo',
+      defaultPath: suggestedName,
       filters: [
         { name: 'JavaScript', extensions: ['js'] },
         { name: 'TypeScript', extensions: ['ts'] },
         { name: 'Todos los archivos', extensions: ['*'] }
       ]
     });
-    if (canceled) return null;
-    fs.writeFileSync(dialogPath, content, 'utf-8');
-    return dialogPath;
+    
+    if (canceled || !filePath) return null;
+    
+    // Asegurarse de que el archivo tenga la extensión correcta
+    let finalPath = filePath;
+    if (!filePath.endsWith('.js') && !filePath.endsWith('.ts')) {
+      finalPath = filePath + path.extname(suggestedName);
+    }
+    
+    fs.writeFileSync(finalPath, content, 'utf-8');
+    return finalPath;
   }
 });
 

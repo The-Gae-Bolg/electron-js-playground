@@ -619,19 +619,37 @@
             }
         }
         async function handleSaveFile() {
-            const content = editor.getValue();
-            // Si ya hay un archivo abierto, guardar sobre ese mismo
-            if (currentFilePath) {
-                await window.electron.fileSystem.saveFile(content, currentFilePath);
-                document.getElementById('file-path').textContent = currentFilePath;
-            } else {
-                // Si es un archivo nuevo, sugerir nombre por defecto
-                const result = await window.electron.fileSystem.saveFile(content, currentFileName || 'Untitled.js');
-                if (result) {
-                    currentFilePath = result;
-                    currentFileName = result.split(/[\\/]/).pop();
-                    document.getElementById('file-path').textContent = result;
+            try {
+                const content = editor.getValue();
+                console.log('Guardando archivo...', { currentFilePath });
+                
+                // Si ya hay un archivo abierto, guardar sobre ese mismo
+                if (currentFilePath) {
+                    console.log('Guardando archivo existente:', currentFilePath);
+                    await window.electron.ipcRenderer.invoke('dialog:saveFile', content, currentFilePath);
+                    document.getElementById('file-path').textContent = currentFilePath;
+                    console.log('Archivo guardado en:', currentFilePath);
+                } else {
+                    // Si es un archivo nuevo, mostrar diálogo para guardar
+                    console.log('Guardando nuevo archivo...');
+                    const suggestedName = currentFileName || 'Untitled.js';
+                    const result = await window.electron.ipcRenderer.invoke('dialog:saveFile', content, suggestedName);
+                    
+                    if (result) {
+                        currentFilePath = result;
+                        const fileName = result.split(/[\\/]/).pop();
+                        currentFileName = fileName;
+                        document.getElementById('file-path').textContent = fileName;
+                        console.log('Nuevo archivo guardado en:', result);
+                    } else {
+                        console.log('El usuario canceló el guardado');
+                    }
                 }
+            } catch (error) {
+                console.error('Error al guardar el archivo:', error);
+                // Mostrar mensaje de error al usuario
+                const outputContent = document.getElementById('output-content');
+                outputContent.innerHTML = `<span class="error">Error al guardar el archivo: ${error.message || error}</span>`;
             }
         }
         // --- Listeners del menú nativo ---
