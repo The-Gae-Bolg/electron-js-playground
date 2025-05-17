@@ -97,7 +97,7 @@ function createWindow() {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'About',
-              message: 'Electron Playground\nVersion 1.0.0',
+              message: 'CodePlay JS\nVersion 1.0.0',
               buttons: ['OK']
             });
           }
