@@ -726,73 +726,102 @@
         }
 
         function redirectDevToolsConsole() {
-          const originalConsole = { ...console };
-          const outputContent = document.getElementById('output-content');
+            const originalConsole = { ...console };
+            const outputContent = document.getElementById('output-content');
 
-          // Almacenar un historial de logs para evitar duplicados
-          const logHistory = new Set();
+            // Almacenar un historial de logs para evitar duplicados
+            const logHistory = new Set();
 
-          ['log', 'warn', 'error', 'info', 'debug'].forEach((method) => {
-            console[method] = (...args) => {
-              // Enviar a la consola original (DevTools)
-              originalConsole[method](...args);
+            ['log', 'warn', 'error', 'info', 'debug'].forEach((method) => {
+                console[method] = (...args) => {
+                    // Enviar a la consola original (DevTools)
+                    originalConsole[method](...args);
 
-              const line = (() => {
-                try {
-                  throw new Error();
-                } catch (err) {
-                  const stack = err.stack.split('\n');
-                  for (let i = 2; i < stack.length; i++) {
-                    const match = stack[i].match(/<anonymous>:(\d+):\d+/);
-                    if (match) {
-                      return parseInt(match[1], 10);
-                    }
-                  }
-                }
-                return '?';
-              })();
+                    const line = (() => {
+                        try {
+                            throw new Error();
+                        } catch (err) {
+                            const stack = err.stack.split('\n');
+                            for (let i = 2; i < stack.length; i++) {
+                                const match = stack[i].match(/<anonymous>:(\d+):\d+/);
+                                if (match) {
+                                    return parseInt(match[1], 10);
+                                }
+                            }
+                        }
+                        return '?';
+                    })();
 
-              // Resolver promesas antes de mostrar en la consola personalizada
-              Promise.all(
-                args.map(async (arg) => {
-                  if (arg instanceof Promise) {
-                    try {
-                      return await arg;
-                    } catch (error) {
-                      return `Error: ${error.message}`;
-                    }
-                  }
-                  return arg;
-                })
-              ).then((resolvedArgs) => {
-                const logEntry = document.createElement('div');
-                logEntry.style.marginBottom = '10px';
-                logEntry.style.display = 'flex';
-                logEntry.style.alignItems = 'flex-start';
+                    // Resolver promesas antes de mostrar en la consola personalizada
+                    Promise.all(
+                        args.map(async (arg) => {
+                            if (arg instanceof Promise) {
+                                try {
+                                    return await arg;
+                                } catch (error) {
+                                    return `Error: ${error.message}`;
+                                }
+                            }
+                            return arg;
+                        })
+                    ).then((resolvedArgs) => {
+                        const logEntry = document.createElement('div');
+                        logEntry.style.marginBottom = '10px';
+                        logEntry.style.display = 'flex';
+                        logEntry.style.alignItems = 'flex-start';
 
-                const lineNumberContainer = document.createElement('div');
-                lineNumberContainer.textContent = `[Line ${line}]:`;
-                lineNumberContainer.style.color = '#7ecfff';
-                lineNumberContainer.style.marginRight = '10px';
-                lineNumberContainer.style.fontFamily = '"Cascadia Code PL", monospace';
+                        const lineNumberContainer = document.createElement('div');
+                        lineNumberContainer.textContent = `[Line ${line}]:`;
+                        lineNumberContainer.style.color = '#7ecfff';
+                        lineNumberContainer.style.marginRight = '10px';
+                        lineNumberContainer.style.fontFamily = '"Cascadia Code PL", monospace';
 
-                resolvedArgs.forEach((arg) => {
-                  if (typeof arg === 'object' && arg !== null) {
-                    const expandableView = createExpandableObjectView(arg);
-                    logEntry.appendChild(expandableView);
-                  } else {
-                    const textNode = document.createElement('div');
-                    textNode.textContent = JSON.stringify(arg);
-                    textNode.style.color = '#e0e0e0';
-                    logEntry.appendChild(textNode);
-                  }
-                });
+                        resolvedArgs.forEach((arg) => {
+                            if (typeof arg === 'object' && arg !== null) {
+                                const expandableView = createExpandableObjectView(arg);
+                                logEntry.appendChild(expandableView);
+                            } else {
+                                const textNode = document.createElement('span');
+                                if (arg === undefined) {
+                                    textNode.textContent = 'undefined';
+                                    textNode.style.color = '#1e90ff';
+                                } else if (Number.isNaN(arg)) {
+                                    textNode.textContent = 'NaN';
+                                    textNode.style.color = '#ff6347';
+                                } else if (typeof arg === 'function') {
+                                    textNode.textContent = 'fn()';
+                                    textNode.style.color = '#98fb98';
+                                } else if (typeof arg === 'string') {
+                                    textNode.textContent = `'${arg}'`;
+                                    textNode.style.color = '#ffa07a';
+                                } else if (typeof arg === 'number') {
+                                    textNode.textContent = arg;
+                                    textNode.style.color = '#ffd700';
+                                } else if (typeof arg === 'boolean') {
+                                    textNode.textContent = arg ? 'true' : 'false';
+                                    textNode.style.color = arg ? '#00bfff' : '#ff4500';
+                                } else if (arg === null) {
+                                    textNode.textContent = 'null';
+                                    textNode.style.color = '#1e90ff';
+                                } else if (typeof arg === 'symbol') {
+                                    textNode.textContent = arg.toString();
+                                    textNode.style.color = '#dda0dd';
+                                } else if (typeof arg === 'bigint') {
+                                    textNode.textContent = `${arg}n`;
+                                    textNode.style.color = '#ff8c00';
+                                } else {
+                                    textNode.textContent = JSON.stringify(arg);
+                                    textNode.style.color = '#e0e0e0';
+                                }
+                                logEntry.appendChild(textNode);
+                            }
+                        });
 
-                logEntry.prepend(lineNumberContainer);
-                outputContent.appendChild(logEntry);
-              });
-            };
-          });
+                        logEntry.prepend(lineNumberContainer);
+                        outputContent.appendChild(logEntry);
+                    });
+                };
+            });
         }
 
         redirectDevToolsConsole();
