@@ -282,6 +282,7 @@
             border-radius: 2px;
             transition: all 0.3s ease;
         }
+
         .resizer-horizontal:hover {
             background: #4d7dc081;
         }
@@ -789,6 +790,38 @@
                 return `<span style=\"color:#e0e0e0\">${String(arg)}</span>`; // Otros tipos en gris claro
             }
         }
+
+        function redirectDevToolsConsole() {
+          const originalConsole = { ...console };
+
+          ['log', 'warn', 'error', 'info', 'debug'].forEach((method) => {
+            console[method] = (...args) => {
+              // Enviar a la consola original (DevTools)
+              originalConsole[method](...args);
+
+              // Resolver promesas antes de mostrar en la consola personalizada
+              Promise.all(
+                args.map(async (arg) => {
+                  if (arg instanceof Promise) {
+                    try {
+                      return await arg;
+                    } catch (error) {
+                      return `Error: ${error.message}`;
+                    }
+                  }
+                  return arg;
+                })
+              ).then((resolvedArgs) => {
+                const outputContent = document.getElementById('output-content');
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${method.toUpperCase()}]: ${resolvedArgs.map(arg => JSON.stringify(arg)).join(' ')}`;
+                outputContent.appendChild(logEntry);
+              });
+            };
+          });
+        }
+
+        redirectDevToolsConsole();
     </script>
 </body>
 
