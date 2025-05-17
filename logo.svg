@@ -1,6 +1,17 @@
+
 <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="256" height="256" rx="48" fill="#23272e"/>
-  <polygon points="108,78 148,108 108,138" fill="#00d2ff"/>
-  <text x="128" y="170" text-anchor="middle" font-family="Cascadia Code PL, Consolas, monospace" font-size="38" fill="#7ecfff" font-weight="bold">CodePlay</text>
-  <text x="128" y="210" text-anchor="middle" font-family="Cascadia Code PL, Consolas, monospace" font-size="40" fill="#baffb8">JS</text>
+  <defs>
+    <linearGradient id="playGradient" x1="100" y1="60" x2="180" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00d2ff"/>
+      <stop offset="1" stop-color="#3a7bd5"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <!-- Ícono de play centrado pero más arriba -->
+  <path d="M110 60 L170 98 L110 136 Z" fill="url(#playGradient)" filter="url(#softShadow)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+  <text x="128" y="190" text-anchor="middle" font-family="Cascadia Code PL, Consolas, monospace" font-size="48" fill="#7ecfff" font-weight="bold">CodePlay</text>
+  <text x="128" y="232" text-anchor="middle" font-family="Cascadia Code PL, Consolas, monospace" font-size="42" fill="#baffb8" font-weight="bold">JS</text>
 </svg>
