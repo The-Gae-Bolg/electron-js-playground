@@ -429,6 +429,7 @@
             let varsHtml = '';
             try {
                 let logs = [];
+                // Definir los métodos originales de la consola antes de redefinirlos
                 const originalLog = console.log;
                 const originalWarn = console.warn;
                 const originalError = console.error;
@@ -487,25 +488,33 @@
                     logs.push(`<span style=\"color:#baffb8\">[Line ${line}] info:</span> ` + args.map(arg => formatConsoleOutput(arg)).join(' '));
                     originalInfo.apply(console, args);
                 };
-
-                // Función para formatear la salida de la consola con colores según el tipo de dato
-                function formatConsoleOutput(value) {
-                    if (typeof value === 'string') {
-                        return `<span style=\"color:#ffa07a\">'${value}'</span>`; // Strings en color salmón
-                    } else if (typeof value === 'number') {
-                        return `<span style=\"color:#ffd700\">${value}</span>`; // Números en color dorado
-                    } else if (typeof value === 'boolean') {
-                        return `<span style=\"color:#00bfff\">${value}</span>`; // Booleanos en azul claro
-                    } else if (value === null) {
-                        return `<span style=\"color:#1e90ff\">null</span>`; // Null en azul
-                    } else if (value === undefined) {
-                        return `<span style=\"color:#1e90ff\">undefined</span>`; // Undefined en azul
-                    } else if (typeof value === 'object') {
-                        return `<span style=\"color:#98fb98\">${JSON.stringify(value, null, 2)}</span>`; // Objetos en verde claro
+                console.table = function (data, columns) {
+                    const line = getLine();
+                    let html = `<span style=\"color:#baffb8\">[Line ${line}] table:</span><br>`;
+                    if (Array.isArray(data)) {
+                        if (data.length > 0 && typeof data[0] === 'object') {
+                            const keys = columns || Object.keys(data[0]);
+                            html += '<table style="border-collapse:collapse;margin-bottom:8px;">';
+                            html += '<tr>' + keys.map(k => `<th style=\"border:1px solid #444;padding:2px 8px;color:#7ecfff;\">${k}</th>`).join('') + '</tr>';
+                            data.forEach(row => {
+                                html += '<tr>' + keys.map(k => `<td style=\"border:1px solid #444;padding:2px 8px;\">${row[k]}</td>`).join('') + '</tr>';
+                            });
+                            html += '</table>';
+                        } else {
+                            html += JSON.stringify(data);
+                        }
+                    } else if (typeof data === 'object' && data !== null) {
+                        const keys = columns || Object.keys(data);
+                        html += '<table style="border-collapse:collapse;margin-bottom:8px;">';
+                        html += '<tr>' + keys.map(k => `<th style=\"border:1px solid #444;padding:2px 8px;color:#7ecfff;\">${k}</th>`).join('') + '</tr>';
+                        html += '<tr>' + keys.map(k => `<td style=\"border:1px solid #444;padding:2px 8px;\">${data[k]}</td>`).join('') + '</tr>';
+                        html += '</table>';
                     } else {
-                        return `<span style=\"color:#e0e0e0\">${String(value)}</span>`; // Otros tipos en gris claro
+                        html += String(data);
                     }
-                }
+                    logs.push(html);
+                    originalTable.apply(console, [data, columns]);
+                };
                 // --- COMPILACIÓN TS ---
                 let codeToEval = instrumentedCode;
                 if (editorLanguage === 'typescript') {
@@ -715,6 +724,25 @@
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
+
+        // Función para formatear la salida de la consola
+        function formatConsoleOutput(arg) {
+            if (typeof arg === 'string') {
+                return `<span style=\"color:#ffa07a\">'${arg}'</span>`; // Strings en color salmón
+            } else if (typeof arg === 'number') {
+                return `<span style=\"color:#ffd700\">${arg}</span>`; // Números en color dorado
+            } else if (typeof arg === 'boolean') {
+                return `<span style=\"color:#00bfff\">${arg}</span>`; // Booleanos en azul claro
+            } else if (arg === null) {
+                return `<span style=\"color:#1e90ff\">null</span>`; // Null en azul
+            } else if (arg === undefined) {
+                return `<span style=\"color:#1e90ff\">undefined</span>`; // Undefined en azul
+            } else if (typeof arg === 'object' && arg !== null) {
+                return `<span style=\"color:#98fb98\">${JSON.stringify(arg, null, 2)}</span>`; // Objetos en verde claro
+            } else {
+                return `<span style=\"color:#e0e0e0\">${String(arg)}</span>`; // Otros tipos en gris claro
+            }
+        }
     </script>
 </body>
 
