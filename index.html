@@ -395,13 +395,30 @@
                     horizontalScrollbarSize: 10
                 }
             });
+
+            // Escucha cambios en el contenido del editor
             editor.onDidChangeModelContent(() => {
                 if (autoRun) {
                     clearTimeout(debounceTimeout);
                     debounceTimeout = setTimeout(executeCode, 500);
                 }
+                updateUnsavedChangesIndicator();
             });
+
+            // Inicializa el contenido guardado al cargar
+            lastSavedContent = editor.getValue();
         });
+        // Función para actualizar el indicador de cambios pendientes
+        function updateUnsavedChangesIndicator() {
+            const currentContent = editor.getValue();
+            const filePathElement = document.getElementById('file-path');
+
+            if (currentContent !== lastSavedContent) {
+                filePathElement.textContent = `${currentFileName || 'Untitled'} *`;
+            } else {
+                filePathElement.textContent = currentFileName || 'Untitled';
+            }
+        }
         function updateAutoRunLabel() {
             if (autoRunSwitch.checked) {
                 AutoRunLabel.style.opacity = '0.85';
@@ -498,6 +515,7 @@
         // --- Lógica de manejo de archivos ---
         let currentFilePath = null;
         let currentFileName = null;
+        let lastSavedContent = ''; // Almacena el contenido más reciente guardado
 
         async function handleNewFile() {
             const result = await window.electron.fileSystem.newFile();
@@ -531,18 +549,20 @@
                     }
                     monaco.editor.setModelLanguage(editor.getModel(), editorLanguage);
                 }
+
+                // Actualiza el estado del contenido guardado
+                lastSavedContent = result.content;
+                updateUnsavedChangesIndicator();
             }
         }
         async function handleSaveFile() {
             try {
                 const content = editor.getValue();
 
-                // Si ya hay un archivo abierto, guardar sobre ese mismo
                 if (currentFilePath) {
                     await window.electron.ipcRenderer.invoke('dialog:saveFile', content, currentFilePath);
                     document.getElementById('file-path').textContent = currentFilePath;
                 } else {
-                    // Si es un archivo nuevo, mostrar diálogo para guardar
                     const suggestedName = currentFileName || 'Untitled.js';
                     const result = await window.electron.ipcRenderer.invoke('dialog:saveFile', content, suggestedName);
 
@@ -551,8 +571,12 @@
                         const fileName = result.split(/[\\/]/).pop();
                         currentFileName = fileName;
                         document.getElementById('file-path').textContent = fileName;
-                    } 
+                    }
                 }
+
+                // Actualiza el estado del contenido guardado
+                lastSavedContent = content;
+                updateUnsavedChangesIndicator();
             } catch (error) {
                 console.error('Error al guardar el archivo:', error);
                 // Mostrar mensaje de error al usuario
