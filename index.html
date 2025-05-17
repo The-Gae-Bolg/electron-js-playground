@@ -279,7 +279,8 @@
 <body>
     <div class="header">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <span id="file-path" style="margin-left: 10px; font-size: 0.8em; color: #7ecfff; opacity: 0.7; font-family: 'Cascadia Code PL', monospace;">
+            <span id="file-path"
+                style="margin-left: 10px; font-size: 0.8em; color: #7ecfff; opacity: 0.7; font-family: 'Cascadia Code PL', monospace;">
                 Sin título
             </span>
         </div>
@@ -295,7 +296,8 @@
         </div>
         <div style="display: flex; align-items: center; gap: 16px;">
             <span id="AutoRunLabel"
-                style="font-size:0.75em; color:#7ecfff; opacity:0.7; font-family:'Cascadia Code PL', monospace;">Auto Run</span>
+                style="font-size:0.75em; color:#7ecfff; opacity:0.7; font-family:'Cascadia Code PL', monospace;">Auto
+                Run</span>
             <label class="switch-label" title="Auto Run">
                 <input type="checkbox" id="autoRunSwitch" checked>
                 <span class="slider"></span>
@@ -426,15 +428,16 @@
             const code = editor.getValue();
             outputContent.innerHTML = '';
             const variablesOutput = document.getElementById('variables-output');
-            let varsHtml = '';
+            let varsHtml = ''; 
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            const originalInfo = console.info;
+            const originalTable = console.table;
             try {
                 let logs = [];
                 // Definir los métodos originales de la consola antes de redefinirlos
-                const originalLog = console.log;
-                const originalWarn = console.warn;
-                const originalError = console.error;
-                const originalInfo = console.info;
-                const originalTable = console.table;
+
                 // Utilidad para obtener la línea de ejecución
                 function getLine() {
                     const err = new Error();
@@ -652,7 +655,7 @@
             try {
                 const content = editor.getValue();
                 console.log('Guardando archivo...', { currentFilePath });
-                
+
                 // Si ya hay un archivo abierto, guardar sobre ese mismo
                 if (currentFilePath) {
                     console.log('Guardando archivo existente:', currentFilePath);
@@ -664,7 +667,7 @@
                     console.log('Guardando nuevo archivo...');
                     const suggestedName = currentFileName || 'Untitled.js';
                     const result = await window.electron.ipcRenderer.invoke('dialog:saveFile', content, suggestedName);
-                    
+
                     if (result) {
                         currentFilePath = result;
                         const fileName = result.split(/[\\/]/).pop();
