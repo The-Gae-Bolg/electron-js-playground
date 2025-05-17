@@ -580,16 +580,16 @@
             }
         });
 
-        // Manejo de archivos desde menú nativo
-        window.electron.ipcRenderer.on('menu-new-file', async () => {
+        // --- Lógica de manejo de archivos ---
+        async function handleNewFile() {
             const result = await window.electron.fileSystem.newFile();
             if (result) {
                 editor.setValue(result.content);
                 document.getElementById('file-path').textContent = 'Sin título';
                 currentFilePath = null;
             }
-        });
-        window.electron.ipcRenderer.on('menu-open-file', async () => {
+        }
+        async function handleOpenFile() {
             const result = await window.electron.fileSystem.openFile();
             if (result) {
                 editor.setValue(result.content);
@@ -612,27 +612,30 @@
                     monaco.editor.setModelLanguage(editor.getModel(), editorLanguage);
                 }
             }
-        });
-        window.electron.ipcRenderer.on('menu-save-file', async () => {
+        }
+        async function handleSaveFile() {
             const content = editor.getValue();
             const result = await window.electron.fileSystem.saveFile(content);
             if (result) {
                 document.getElementById('file-path').textContent = result;
                 currentFilePath = result;
             }
-        });
-
-        // Atajos de teclado para archivos (llaman a la lógica del menú)
+        }
+        // --- Listeners del menú nativo ---
+        window.electron.ipcRenderer.on('menu-new-file', handleNewFile);
+        window.electron.ipcRenderer.on('menu-open-file', handleOpenFile);
+        window.electron.ipcRenderer.on('menu-save-file', handleSaveFile);
+        // --- Atajos de teclado ---
         document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                 e.preventDefault();
-                window.electron.ipcRenderer.emit('menu-save-file');
-            } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                handleSaveFile();
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
                 e.preventDefault();
-                window.electron.ipcRenderer.emit('menu-open-file');
-            } else if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                handleOpenFile();
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
                 e.preventDefault();
-                window.electron.ipcRenderer.emit('menu-new-file');
+                handleNewFile();
             }
         });
 
