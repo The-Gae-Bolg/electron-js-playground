@@ -777,7 +777,22 @@
                         lineNumberContainer.style.fontFamily = '"Cascadia Code PL", monospace';
 
                         resolvedArgs.forEach((arg) => {
-                            if (typeof arg === 'object' && arg !== null) {
+                            if (Array.isArray(arg)) {
+                                const valueSpan = document.createElement('span');
+                                valueSpan.textContent = '[...]';
+                                valueSpan.style.color = '#98fb98';
+                                valueSpan.style.cursor = 'pointer';
+
+                                const nestedView = createExpandableObjectView(arg);
+                                nestedView.style.display = 'none';
+
+                                valueSpan.addEventListener('click', () => {
+                                    nestedView.style.display = nestedView.style.display === 'none' ? 'block' : 'none';
+                                });
+
+                                logEntry.appendChild(valueSpan);
+                                logEntry.appendChild(nestedView);
+                            } else if (typeof arg === 'object' && arg !== null) {
                                 const expandableView = createExpandableObjectView(arg);
                                 logEntry.appendChild(expandableView);
                             } else {
