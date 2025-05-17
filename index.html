@@ -463,6 +463,17 @@
             outputContent.innerHTML = '';
             const variablesOutput = document.getElementById('variables-output');
             try {
+                let compiledCode = code;
+
+                // Si el editor está en modo TypeScript, compilar a JavaScript
+                if (editorLanguage === 'typescript') {
+                    const ts = window.ts;
+                    const result = ts.transpileModule(code, {
+                        compilerOptions: { module: ts.ModuleKind.CommonJS }
+                    });
+                    compiledCode = result.outputText;
+                }
+
                 const varNames = [];
                 const varLines = {};
                 const varRegex = /\b(let|const|var)\s+([a-zA-Z_$][\w$]*)/g;
@@ -474,7 +485,7 @@
                 }
 
                 window.__playground_vars__ = {};
-                const instrumentedCode = code + '\n' + varNames.map(v => `try { window.__playground_vars__['${v}'] = ${v}; } catch (e) { window.__playground_vars__['${v}'] = '<not evaluated>'; }`).join('\n');
+                const instrumentedCode = compiledCode + '\n' + varNames.map(v => `try { window.__playground_vars__['${v}'] = ${v}; } catch (e) { window.__playground_vars__['${v}'] = '<not evaluated>'; }`).join('\n');
 
                 eval(instrumentedCode);
 
