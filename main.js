@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -66,6 +66,20 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+// Habilitar el comando para abrir las herramientas de desarrollo
+app.whenReady().then(() => {
+  globalShortcut.register('Ctrl+Shift+I', () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (focusedWindow) {
+      focusedWindow.webContents.toggleDevTools();
+    }
+  });
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
 
 // Manejar la apertura de archivos
 ipcMain.handle('dialog:openFile', async () => {
