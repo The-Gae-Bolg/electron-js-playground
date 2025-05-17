@@ -362,6 +362,7 @@
                 jsLabel.style.opacity = '0.7';
                 tsLabel.style.opacity = '0.3';
             }
+            executeCode(); // Ejecutar el código después de cambiar el lenguaje
         });
         // Al cargar, asegúrate de que JS esté resaltado
         jsLabel.style.opacity = '0.7';
@@ -763,7 +764,6 @@
                         return '?';
                     })();
 
-                    // Resolver promesas antes de mostrar en la consola personalizada
                     Promise.all(
                         args.map(async (arg) => {
                             if (arg instanceof Promise) {
